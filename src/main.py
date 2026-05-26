@@ -14,14 +14,13 @@ from ui import *
 from attack import AttackAnimationSprite
 import sys
 import asyncio
-from pygame.locals import *
 
 
 async def main():
     class Game:
         def __init__(self):
             pygame.init()
-            self.display_surface = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+            self.display_surface = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.FULLSCREEN)
             pygame.display.set_caption('Monster Battle')
             self.clock = pygame.time.Clock()
             self.running = True
@@ -51,20 +50,6 @@ async def main():
 
             # timers
             self.timers = {'player end': Timer(1000, func = self.opponent_turn), 'opponent end': Timer(1000, func = self.player_turn)}
-
-            self.end_button_rects = {}
-        
-        def normalize_pos(self, pos):
-
-            surface_width, surface_height = self.display_surface.get_size()
-
-            scale_x = WINDOW_WIDTH / surface_width
-            scale_y = WINDOW_HEIGHT / surface_height
-
-            return (
-                pos[0] * scale_x,
-                pos[1] * scale_y
-            )
 
         def reset_game(self):
             self.player_active = True
@@ -157,15 +142,15 @@ async def main():
         def draw_monster_floor(self):
             for sprite in self.all_sprites:
                 if isinstance(sprite, Creature):
-                    floor_rect = self.bg_surfs['floor'].get_frect(center = sprite.rect.midbottom + pygame.Vector2(0, -10))
+                    floor_rect = self.bg_surfs['floor'].get_frect(center = sprite.rect.midbottom + pygame.Vector2(0, -WINDOW_HEIGHT * 0.015))
                     self.display_surface.blit(self.bg_surfs['floor'], floor_rect)
 
         async def run(self):
             while self.running:
                 dt = self.clock.tick(60) / 1000
-                pygame.event.pump()
-                for event in pygame.event.get(pygame.QUIT, pump=False):
-                    self.running = False
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        self.running = False
             
                 if self.state == 'battle':
                     # update
@@ -191,118 +176,23 @@ async def main():
                     blur_surf.blit(tint_surf, (0, 0))
                     self.display_surface.blit(blur_surf, (0, 0))
 
-                    font = pygame.font.Font(None, 100)
+                    font = pygame.font.Font(None, int(WINDOW_WIDTH * 0.08))
                     text = 'VICTORY' if self.state == 'victory' else 'GAME OVER'
                     color = COLORS['green'] if self.state == 'victory' else COLORS['red']
                     text_surf = font.render(text, True, color)
-                    text_rect = text_surf.get_frect(center = (WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2 - 50))
+                    text_rect = text_surf.get_frect(center = (WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2 - WINDOW_HEIGHT * 0.07))
                     self.display_surface.blit(text_surf, text_rect)
 
-                    button_font = pygame.font.Font(None, 50)
+                    sub_font = pygame.font.Font(None, int(WINDOW_WIDTH * 0.03))
+                    sub_surf = sub_font.render("Press SPACE to Restart or ESC to Quit", True, COLORS['gray'])
+                    sub_rect = sub_surf.get_frect(center = (WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2 + WINDOW_HEIGHT * 0.07))
+                    self.display_surface.blit(sub_surf, sub_rect)
 
-                    restart_rect = pygame.FRect(
-                        WINDOW_WIDTH / 2 - 220,
-                        WINDOW_HEIGHT / 2 + 20,
-                        180,
-                        70
-                    )
-
-                    quit_rect = pygame.FRect(
-                        WINDOW_WIDTH / 2 + 40,
-                        WINDOW_HEIGHT / 2 + 20,
-                        180,
-                        70
-                    )
-
-                    self.end_button_rects = {
-                        'restart': restart_rect,
-                        'quit': quit_rect
-                    }
-
-                    pygame.draw.rect(
-                        self.display_surface,
-                        COLORS['white'],
-                        restart_rect,
-                        0,
-                        8
-                    )
-
-                    pygame.draw.rect(
-                        self.display_surface,
-                        COLORS['gray'],
-                        restart_rect,
-                        3,
-                        8
-                    )
-
-                    pygame.draw.rect(
-                        self.display_surface,
-                        COLORS['white'],
-                        quit_rect,
-                        0,
-                        8
-                    )
-
-                    pygame.draw.rect(
-                        self.display_surface,
-                        COLORS['gray'],
-                        quit_rect,
-                        3,
-                        8
-                    )
-
-                    restart_surf = button_font.render(
-                        "Restart",
-                        True,
-                        COLORS['black']
-                    )
-
-                    quit_surf = button_font.render(
-                        "Quit",
-                        True,
-                        COLORS['black']
-                    )
-
-                    self.display_surface.blit(
-                        restart_surf,
-                        restart_surf.get_frect(center=restart_rect.center)
-                    )
-
-                    self.display_surface.blit(
-                        quit_surf,
-                        quit_surf.get_frect(center=quit_rect.center)
-                    )
-
-                    for event in pygame.event.get(pygame.KEYDOWN, pump=False):
-
-                        if event.key == pygame.K_SPACE:
-                            self.reset_game()
-
-                        elif event.key == pygame.K_ESCAPE:
-                            self.running = False
-
-                    for event in pygame.event.get(pygame.MOUSEBUTTONDOWN, pump=False):
-
-                        if event.button == 1:
-
-                            mouse_pos = self.normalize_pos(event.pos)
-
-                            if self.end_button_rects['restart'].collidepoint(mouse_pos):
-                                self.reset_game()
-
-                            elif self.end_button_rects['quit'].collidepoint(mouse_pos):
-                                self.running = False
-
-                    for event in pygame.event.get(pygame.FINGERDOWN, pump=False):
-
-                        x = event.x * self.display_surface.get_width()
-                        y = event.y * self.display_surface.get_height()
-
-                        if self.end_button_rects['restart'].collidepoint(self.normalize_pos((x, y))):
-                            self.reset_game()
-
-                        elif self.end_button_rects['quit'].collidepoint(self.normalize_pos((x, y))):
-                            self.running = False
+                    keys = pygame.key.get_just_pressed()
+                    if keys[pygame.K_ESCAPE]:
+                        self.running = False
+                    if keys[pygame.K_SPACE]:
+                        self.reset_game()
 
                 pygame.display.update()
 

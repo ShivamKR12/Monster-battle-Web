@@ -3,9 +3,9 @@ from settings import *
 class UI:
     def __init__(self, monster, player_monsters, simple_surfs, get_input):
         self.display_surface = pygame.display.get_surface()
-        self.font = pygame.font.Font(None, 30)
-        self.left = WINDOW_WIDTH / 2 - 100 
-        self.top = WINDOW_HEIGHT / 2 + 50
+        self.font = pygame.font.Font(None, int(WINDOW_WIDTH * 0.025))
+        self.left = WINDOW_WIDTH / 2 - (WINDOW_WIDTH * 0.08) 
+        self.top = WINDOW_HEIGHT / 2 + (WINDOW_HEIGHT * 0.07)
         self.monster = monster
         self.simple_surfs = simple_surfs
         self.get_input = get_input
@@ -21,319 +21,80 @@ class UI:
         self.available_monsters = [monster for monster in self.player_monsters if monster != self.monster and monster.health > 0]
         self.switch_index = 0
 
-        # touch / mouse button rects
-        self.button_rects = []
-        self.switch_rects = []
-
     def input(self):
-        pygame.event.pump()
-
-        for event in pygame.event.get(pygame.KEYDOWN, pump=False):
-
-            if self.state == 'general':
-
-                if event.key == pygame.K_DOWN:
-                    self.general_index['row'] = (
-                        self.general_index['row'] + 1
-                    ) % self.rows
-
-                elif event.key == pygame.K_UP:
-                    self.general_index['row'] = (
-                        self.general_index['row'] - 1
-                    ) % self.rows
-
-                elif event.key == pygame.K_RIGHT:
-                    self.general_index['col'] = (
-                        self.general_index['col'] + 1
-                    ) % self.cols
-
-                elif event.key == pygame.K_LEFT:
-                    self.general_index['col'] = (
-                        self.general_index['col'] - 1
-                    ) % self.cols
-
-                elif event.key == pygame.K_SPACE:
-                    self.state = self.general_options[
-                        self.general_index['col'] +
-                        self.general_index['row'] * 2
-                    ]
-
-            elif self.state == 'attack':
-
-                if event.key == pygame.K_DOWN:
-                    self.attack_index['row'] = (
-                        self.attack_index['row'] + 1
-                    ) % self.rows
-
-                elif event.key == pygame.K_UP:
-                    self.attack_index['row'] = (
-                        self.attack_index['row'] - 1
-                    ) % self.rows
-
-                elif event.key == pygame.K_RIGHT:
-                    self.attack_index['col'] = (
-                        self.attack_index['col'] + 1
-                    ) % self.cols
-
-                elif event.key == pygame.K_LEFT:
-                    self.attack_index['col'] = (
-                        self.attack_index['col'] - 1
-                    ) % self.cols
-
-                elif event.key == pygame.K_SPACE:
-
-                    attack = self.monster.abilities[
-                        self.attack_index['col'] +
-                        self.attack_index['row'] * 2
-                    ]
-
-                    self.get_input(self.state, attack)
-                    self.state = 'general'
-
-            elif self.state == 'switch':
-
-                if self.available_monsters:
-
-                    if event.key == pygame.K_DOWN:
-                        self.switch_index = (
-                            self.switch_index + 1
-                        ) % len(self.available_monsters)
-
-                    elif event.key == pygame.K_UP:
-                        self.switch_index = (
-                            self.switch_index - 1
-                        ) % len(self.available_monsters)
-
-                    elif event.key == pygame.K_SPACE:
-                        self.get_input(
-                            self.state,
-                            self.available_monsters[self.switch_index]
-                        )
-
-                        self.state = 'general'
-
-            elif self.state == 'heal':
-
-                self.get_input('heal')
-                self.state = 'general'
-
-            elif self.state == 'escape':
-
-                self.get_input('escape')
-
-            if event.key == pygame.K_ESCAPE:
-
-                if self.state == 'general':
-                    self.get_input('escape')
-
-                else:
-                    self.state = 'general'
-
-                    self.general_index = {
-                        'col': 0,
-                        'row': 0
-                    }
-
-                    self.attack_index = {
-                        'col': 0,
-                        'row': 0
-                    }
-
-                    self.switch_index = 0
-
-        for event in pygame.event.get(pygame.MOUSEBUTTONDOWN, pump=False):
-
-            if event.button == 1:
-                self.handle_touch(
-                    self.normalize_pos(event.pos)
-                )
-
-        for event in pygame.event.get(pygame.FINGERDOWN, pump=False):
-
-            x = event.x * self.display_surface.get_width()
-            y = event.y * self.display_surface.get_height()
-
-            self.handle_touch(
-                self.normalize_pos((x, y))
-            )
-
-    def handle_touch(self, pos):
-
+        keys = pygame.key.get_just_pressed()
         if self.state == 'general':
-
-            for i, rect in enumerate(self.button_rects):
-
-                if rect.collidepoint(pos):
-
-                    self.general_index['col'] = i % 2
-                    self.general_index['row'] = i // 2
-
-                    selected = self.general_options[i]
-
-                    if selected == 'heal':
-                        self.get_input('heal')
-
-                    elif selected == 'escape':
-                        self.get_input('escape')
-
-                    else:
-                        self.state = selected
-
-                    break
+            self.general_index['row'] = (self.general_index['row'] + int(keys[pygame.K_DOWN]) - int(keys[pygame.K_UP])) % self.rows
+            self.general_index['col'] =  (self.general_index['col'] + int(keys[pygame.K_RIGHT]) - int(keys[pygame.K_LEFT])) % self.cols
+            if keys[pygame.K_SPACE]:
+                self.state = self.general_options[self.general_index['col'] + self.general_index['row'] * 2]
 
         elif self.state == 'attack':
-
-            for i, rect in enumerate(self.button_rects):
-
-                if rect.collidepoint(pos):
-
-                    self.attack_index['col'] = i % 2
-                    self.attack_index['row'] = i // 2
-
-                    attack = self.monster.abilities[i]
-
-                    self.get_input('attack', attack)
-                    self.state = 'general'
-                    break
+            self.attack_index['row'] = (self.attack_index['row'] + int(keys[pygame.K_DOWN]) - int(keys[pygame.K_UP])) % self.rows
+            self.attack_index['col'] =  (self.attack_index['col'] + int(keys[pygame.K_RIGHT]) - int(keys[pygame.K_LEFT])) % self.cols
+            if keys[pygame.K_SPACE]:
+                attack = self.monster.abilities[self.attack_index['col'] + self.attack_index['row'] * 2]
+                self.get_input(self.state, attack)
+                self.state = 'general'
 
         elif self.state == 'switch':
-
-            for i, rect in enumerate(self.switch_rects):
-
-                if rect.collidepoint(pos):
-
-                    self.switch_index = i
-
-                    self.get_input(
-                        'switch',
-                        self.available_monsters[i]
-                    )
-
+            if self.available_monsters:
+                self.switch_index = (self.switch_index + int(keys[pygame.K_DOWN]) - int(keys[pygame.K_UP])) % len(self.available_monsters)
+                
+                if keys[pygame.K_SPACE]:
+                    self.get_input(self.state, self.available_monsters[self.switch_index])
                     self.state = 'general'
-                    break
 
-    def normalize_pos(self, pos):
-
-        surface_width, surface_height = self.display_surface.get_size()
-
-        scale_x = WINDOW_WIDTH / surface_width
-        scale_y = WINDOW_HEIGHT / surface_height
-
-        return (
-            pos[0] * scale_x,
-            pos[1] * scale_y
-        )
+        elif self.state == 'heal':
+            self.get_input('heal')
+            self.state = 'general'
+        
+        elif self.state == 'escape':
+            self.get_input('escape')
+        
+        if keys[pygame.K_ESCAPE]:
+            if self.state == 'general':
+                self.get_input('escape')
+            else:
+                self.state = 'general'
+                self.general_index = {'col': 0, 'row': 0}
+                self.attack_index = {'col': 0, 'row': 0}
+                self.switch_index = 0
 
     def quad_select(self, index, options):
         # bg
-        rect = pygame.FRect(self.left + 40, self.top + 60 ,400, 200)
-        pygame.draw.rect(self.display_surface, COLORS['white'],rect, 0, 4)
-        pygame.draw.rect(self.display_surface, COLORS['gray'],rect, 4, 4)
-
-        # menu
-        self.button_rects = []
-
-        for col in range(self.cols):
-            for row in range(self.rows):
-
-                x = rect.left + rect.width / (self.cols * 2) + \
-                    (rect.width / self.cols) * col
-
-                y = rect.top + rect.height / (self.rows * 2) + \
-                    (rect.height / self.rows) * row
-
-                i = col + 2 * row
-
-                button_rect = pygame.FRect(
-                    0, 0,
-                    rect.width / 2,
-                    rect.height / 2
-                )
-
-                button_rect.center = (x, y)
-
-                self.button_rects.append(button_rect)
-
-                selected = (
-                    col == index['col'] and
-                    row == index['row']
-                )
-
-                color = COLORS['white'] if selected else COLORS['black']
-
-                pygame.draw.rect(
-                    self.display_surface,
-                    COLORS['gray'] if selected else COLORS['white'],
-                    button_rect,
-                    0,
-                    4
-                )
-
-                pygame.draw.rect(
-                    self.display_surface,
-                    COLORS['black'] if selected else COLORS['gray'],
-                    button_rect,
-                    2,
-                    4
-                )
-
-                text_surf = self.font.render(
-                    options[i],
-                    True,
-                    color
-                )
-
-                text_rect = text_surf.get_frect(
-                    center=(x, y)
-                )
-
-                self.display_surface.blit(
-                    text_surf,
-                    text_rect
-                )
-
-    def switch(self):
-        # bg
-        rect = pygame.FRect(self.left + 40, self.top - 140 ,400, 400)
+        rect = pygame.FRect(self.left + (WINDOW_WIDTH * 0.03), self.top + (WINDOW_HEIGHT * 0.08), WINDOW_WIDTH * 0.3, WINDOW_HEIGHT * 0.25)
         pygame.draw.rect(self.display_surface, COLORS['white'],rect, 0, 4)
         pygame.draw.rect(self.display_surface, COLORS['gray'],rect, 4, 4)
 
         # menu 
-        self.switch_rects = []
+        for col in range(self.cols):
+            for row in range(self.rows):
+                x = rect.left + rect.width / (self.cols * 2) + (rect.width / self.cols) * col
+                y = rect.top + rect.height / (self.rows * 2) + (rect.height / self.rows) * row
+                i = col + 2 * row
+                color = COLORS['gray'] if col == index['col'] and row == index['row'] else COLORS['black']
+
+                text_surf = self.font.render(options[i], True, color)
+                text_rect = text_surf.get_frect(center = (x,y))
+                self.display_surface.blit(text_surf, text_rect)
+
+    def switch(self):
+        # bg
+        rect = pygame.FRect(self.left + (WINDOW_WIDTH * 0.03), self.top - (WINDOW_HEIGHT * 0.2), WINDOW_WIDTH * 0.3, WINDOW_HEIGHT * 0.55)
+        pygame.draw.rect(self.display_surface, COLORS['white'],rect, 0, 4)
+        pygame.draw.rect(self.display_surface, COLORS['gray'],rect, 4, 4)
+
+        # menu 
         v_offset = 0 if self.switch_index < self.visible_monsters else -(self.switch_index - self.visible_monsters + 1) * rect.height / self.visible_monsters
         for i in range(len(self.available_monsters)):
             x = rect.centerx
             y = rect.top + rect.height / (self.visible_monsters * 2) + rect.height / self.visible_monsters * i + v_offset
-            color = COLORS['white'] if i == self.switch_index else COLORS['black']
+            color = COLORS['gray'] if i == self.switch_index else COLORS['black']
             name = self.available_monsters[i].name
 
             simple_surf = self.simple_surfs[name]
-            simple_rect = simple_surf.get_frect(center = (x - 100, y))
-            
-            entry_rect = pygame.FRect(
-                rect.left + 20,
-                y - 30,
-                rect.width - 40,
-                60
-            )
-
-            self.switch_rects.append(entry_rect)
-
-            pygame.draw.rect(
-                self.display_surface,
-                COLORS['gray'] if i == self.switch_index else COLORS['white'],
-                entry_rect,
-                0,
-                4
-            )
-
-            pygame.draw.rect(
-                self.display_surface,
-                COLORS['gray'],
-                entry_rect,
-                2,
-                4
-            )
+            simple_rect = simple_surf.get_frect(center = (x - (WINDOW_WIDTH * 0.08), y))
 
             text_surf = self.font.render(name, True, color)
             text_rect = text_surf.get_frect(midleft = (x,y))
@@ -343,17 +104,17 @@ class UI:
 
     def stats(self):
         # bg 
-        rect = pygame.FRect(self.left, self.top, 250, 80)
+        rect = pygame.FRect(self.left, self.top, WINDOW_WIDTH * 0.2, WINDOW_HEIGHT * 0.11)
         pygame.draw.rect(self.display_surface, COLORS['white'],rect, 0, 4)
         pygame.draw.rect(self.display_surface, COLORS['gray'],rect, 4, 4)
 
         # data 
         name_surf = self.font.render(self.monster.name, True, COLORS['black'])
-        name_rect = name_surf.get_frect(topleft = rect.topleft + pygame.Vector2(rect.width * 0.05, 12))
+        name_rect = name_surf.get_frect(topleft = rect.topleft + pygame.Vector2(rect.width * 0.05, WINDOW_HEIGHT * 0.015))
         self.display_surface.blit(name_surf, name_rect)
 
         # health bar 
-        health_rect = pygame.FRect(name_rect.left, name_rect.bottom + 10, rect.width * 0.9, 20)
+        health_rect = pygame.FRect(name_rect.left, name_rect.bottom + (WINDOW_HEIGHT * 0.015), rect.width * 0.9, WINDOW_HEIGHT * 0.03)
         pygame.draw.rect(self.display_surface, COLORS['gray'], health_rect)
         self.draw_bar(health_rect, self.monster.health, self.monster.max_health)
     
@@ -379,21 +140,21 @@ class OpponentUI:
     def __init__(self, monster):
         self.display_surface = pygame.display.get_surface()
         self.monster = monster
-        self.font = pygame.font.Font(None, 30)
+        self.font = pygame.font.Font(None, int(WINDOW_WIDTH * 0.025))
 
     def draw(self):
         # bg 
-        rect = pygame.FRect((0,0), (250,80)).move_to(midleft = (500, self.monster.rect.centery))
+        rect = pygame.FRect((0,0), (WINDOW_WIDTH * 0.2, WINDOW_HEIGHT * 0.11)).move_to(midleft = (WINDOW_WIDTH * 0.4, self.monster.rect.centery))
         pygame.draw.rect(self.display_surface, COLORS['white'],rect, 0, 4)
         pygame.draw.rect(self.display_surface, COLORS['gray'],rect, 4, 4)
 
         # name
         name_surf = self.font.render(self.monster.name, True, COLORS['black'])
-        name_rect = name_surf.get_frect(topleft = rect.topleft + pygame.Vector2(rect.width * 0.05, 12))
+        name_rect = name_surf.get_frect(topleft = rect.topleft + pygame.Vector2(rect.width * 0.05, WINDOW_HEIGHT * 0.015))
         self.display_surface.blit(name_surf, name_rect)
 
         # health
-        health_rect = pygame.FRect(name_rect.left, name_rect.bottom + 10, rect.width * 0.9, 20)
+        health_rect = pygame.FRect(name_rect.left, name_rect.bottom + (WINDOW_HEIGHT * 0.015), rect.width * 0.9, WINDOW_HEIGHT * 0.03)
         ratio = health_rect.width / self.monster.max_health
         progress_rect = pygame.FRect(health_rect.topleft, (self.monster.health * ratio, health_rect.height))
         pygame.draw.rect(self.display_surface, COLORS['gray'], health_rect)
