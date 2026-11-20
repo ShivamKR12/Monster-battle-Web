@@ -6,7 +6,6 @@ on:
       - '**.py'
       - '**.spec'
       - '**.ini'
-      - '**.tmpl'
       - 'requirements.txt'
       - 'setup.py'
       - '.github/workflows/*.yml'
